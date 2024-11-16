@@ -23,7 +23,7 @@ def fetch_chat_history():
         decoded_content = base64.b64decode(file_content).decode('utf-8')
         return decoded_content.split('\n')
     else:
-        st.error("Error fetching chat history from GitHub")
+        st.error(f"Error fetching chat history from GitHub: {response.status_code}")
         return []
 
 # Function to save a new chat message to the GitHub file
@@ -42,12 +42,16 @@ def save_message(message):
     # Convert the content to Base64 for GitHub API
     encoded_content = base64.b64encode(updated_content.encode('utf-8')).decode('utf-8')
     
-    # Get the current file's SHA (necessary for updating the file)
+    # Fetch the file details to get the 'sha' value
     response = requests.get(url, headers=headers)
-    sha = response.json()['sha']
+    if response.status_code == 200:
+        sha = response.json()['sha']
+    else:
+        st.error(f"Error fetching file details: {response.status_code}")
+        return
     
-    # Update the file on GitHub
-    response = requests.put(
+    # Update the file on GitHub with the new content
+    update_response = requests.put(
         url,
         headers=headers,
         json={
@@ -57,10 +61,10 @@ def save_message(message):
         }
     )
 
-    if response.status_code == 200:
+    if update_response.status_code == 200:
         st.success("Message saved successfully!")
     else:
-        st.error(f"Error saving message: {response.status_code}")
+        st.error(f"Error saving message: {update_response.status_code}")
 
 # Streamlit App
 def main():
